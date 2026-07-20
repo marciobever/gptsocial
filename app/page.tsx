@@ -25,6 +25,11 @@ export default function Home() {
   const [briefing, setBriefing] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [result, setResult] = useState("");
+  const [existingCampaignId, setExistingCampaignId] = useState("52513336177917");
+  const [firstConversionLink, setFirstConversionLink] = useState("https://www.foodsnap.com.br/lp");
+  const [secondConversionLink, setSecondConversionLink] = useState("https://www.foodsnap.com.br/start");
+  const [updatingVariants, setUpdatingVariants] = useState(false);
+  const [variantResult, setVariantResult] = useState("");
 
   const selectedPage = pages.find((page) => page.id === pageId);
 
@@ -98,6 +103,33 @@ export default function Home() {
       setResult(error instanceof Error ? error.message : "Falha ao publicar.");
     } finally {
       setPublishing(false);
+    }
+  }
+
+  async function updateConversionLinks() {
+    if (!accountId || !existingCampaignId || !firstConversionLink || !secondConversionLink) {
+      return setVariantResult("Selecione a conta e preencha a campanha e os dois links.");
+    }
+    setUpdatingVariants(true);
+    setVariantResult("");
+    try {
+      const response = await fetch("/api/meta/ads/conversion-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adAccountId: accountId,
+          campaignId: existingCampaignId,
+          firstLink: firstConversionLink,
+          secondLink: secondConversionLink,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Falha ao atualizar os anúncios.");
+      setVariantResult(`Dois anúncios pausados. IDs: ${data.firstAd.id} e ${data.secondAd.id}`);
+    } catch (error) {
+      setVariantResult(error instanceof Error ? error.message : "Falha ao atualizar os anúncios.");
+    } finally {
+      setUpdatingVariants(false);
     }
   }
 
@@ -177,6 +209,17 @@ export default function Home() {
 
             {result && <div className={result.includes("ID:") ? "alert success" : "alert error"}>{result}</div>}
             <div className="actions"><button className="draft" onClick={() => setStep(Math.min(step + 1, 3))}>Salvar rascunho</button><button className="next" onClick={publishPaused} disabled={publishing}>{publishing ? "Criando..." : "Criar pausada"}<span>→</span></button></div>
+
+            <div className="existingCampaign">
+              <div className="sectionHeading compact"><span className="number">02</span><div><h2>Links de conversão</h2><p>Atualiza o anúncio atual e cria uma segunda variação no mesmo conjunto.</p></div></div>
+              <label>ID da campanha<input value={existingCampaignId} onChange={(e) => setExistingCampaignId(e.target.value)} /></label>
+              <div className="twoCols">
+                <label>Anúncio 01 — LP<input value={firstConversionLink} onChange={(e) => setFirstConversionLink(e.target.value)} /></label>
+                <label>Anúncio 02 — Start<input value={secondConversionLink} onChange={(e) => setSecondConversionLink(e.target.value)} /></label>
+              </div>
+              {variantResult && <div className={variantResult.includes("IDs:") ? "alert success" : "alert error"}>{variantResult}</div>}
+              <div className="actions variantActions"><button className="next" onClick={updateConversionLinks} disabled={updatingVariants}>{updatingVariants ? "Atualizando..." : "Aplicar dois links pausados"}<span>→</span></button></div>
+            </div>
           </div>
 
           <aside className="previewCard">

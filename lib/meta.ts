@@ -222,3 +222,111 @@ export async function createPausedCampaign(token: string, input: CampaignDraft) 
     instagramEnabled: Boolean(instagramActorId),
   };
 }
+
+export type ConversionLinkVariantsInput = {
+  adAccountId: string;
+  campaignId: string;
+  firstLink: string;
+  secondLink: string;
+};
+
+type LinkAdCreative = {
+  id: string;
+  object_story_spec?: {
+    page_id?: string;
+    instagram_actor_id?: string;
+    link_data?: Record<string, unknown> & {
+      link?: string;
+      call_to_action?: {
+        type?: string;
+        value?: Record<string, unknown> & { link?: string };
+      };
+    };
+  };
+};
+
+function creativeWithLink(creative: LinkAdCreative, link: string) {
+  const storySpec = structuredClone(creative.object_story_spec);
+  if (!storySpec?.page_id || !storySpec.link_data) {
+    throw new Error("O anúncio atual não usa um criativo de link compatível.");
+  }
+
+  storySpec.link_data.link = link;
+  const currentCta = storySpec.link_data.call_to_action;
+  storySpec.link_data.call_to_action = {
+    type: currentCta?.type || "LEARN_MORE",
+    value: { ...(currentCta?.value || {}), link },
+  };
+  return storySpec;
+}
+
+export async function updateConversionLinkVariants(token: string, input: ConversionLinkVariantsInput) {
+  for (const link of [input.firstLink, input.secondLink]) {
+    const url = new URL(link);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error("Informe links HTTP ou HTTPS válidos.");
+  }
+
+  const campaign = await graphGet(token, `/${input.campaignId}`, { fields: "id,name,status" });
+  const adsets = await graphGet(token, `/${input.campaignId}/adsets`, {
+    fields: "id,name,status",
+    limit: 100,
+  });
+  const adset = (adsets.data || []).find(
+    (item: { name?: string }) => item.name === `${campaign.name} — Conjunto`,
+  ) || adsets.data?.[0];
+  if (!adset?.id) throw new Error("Não encontrei o conjunto de anúncios da campanha.");
+
+  const ads = await graphGet(token, `/${adset.id}/ads`, {
+    fields: "id,name,status,creative{id}",
+    limit: 100,
+  });
+  const firstAdName = `${campaign.name} — Anúncio`;
+  const secondAdName = `${campaign.name} — Anúncio 02`;
+  const firstAd = (ads.data || []).find((item: { name?: string }) => item.name === firstAdName);
+  const existingSecondAd = (ads.data || []).find((item: { name?: string }) => item.name === secondAdName);
+  if (!firstAd?.id || !firstAd.creative?.id) throw new Error("Não encontrei o primeiro anúncio da campanha.");
+
+  const sourceCreative = await graphGet(token, `/${firstAd.creative.id}`, {
+    fields: "id,name,object_story_spec",
+  }) as LinkAdCreative;
+
+  const firstCreative = await graphPost(token, `/${input.adAccountId}/adcreatives`, {
+    name: `${campaign.name} — Criativo LP`,
+    object_story_spec: creativeWithLink(sourceCreative, input.firstLink),
+  });
+  const secondCreative = await graphPost(token, `/${input.adAccountId}/adcreatives`, {
+    name: `${campaign.name} — Criativo Start`,
+    object_story_spec: creativeWithLink(sourceCreative, input.secondLink),
+  });
+
+  await graphPost(token, `/${campaign.id}`, { status: "PAUSED" });
+  await graphPost(token, `/${adset.id}`, { status: "PAUSED" });
+  await graphPost(token, `/${firstAd.id}`, {
+    creative: { creative_id: firstCreative.id },
+    status: "PAUSED",
+  });
+
+  let secondAdId = existingSecondAd?.id;
+  if (secondAdId) {
+    await graphPost(token, `/${secondAdId}`, {
+      creative: { creative_id: secondCreative.id },
+      status: "PAUSED",
+    });
+  } else {
+    const secondAd = await graphPost(token, `/${input.adAccountId}/ads`, {
+      name: secondAdName,
+      adset_id: adset.id,
+      creative: { creative_id: secondCreative.id },
+      status: "PAUSED",
+    });
+    secondAdId = secondAd.id;
+  }
+
+  return {
+    campaignId: campaign.id,
+    adsetId: adset.id,
+    firstAd: { id: firstAd.id, link: input.firstLink, creativeId: firstCreative.id },
+    secondAd: { id: secondAdId, link: input.secondLink, creativeId: secondCreative.id },
+    status: "PAUSED",
+  };
+}

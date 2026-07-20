@@ -85,6 +85,7 @@ export default function Home() {
         body: JSON.stringify({
           adAccountId: accountId, pageId,
           instagramActorId: selectedPage?.instagram_business_account?.id,
+          instagramUsername: selectedPage?.instagram_business_account?.username,
           name, objective, dailyBudget, link, headline, primaryText, description,
           cta: "LEARN_MORE", imageUrl,
         }),

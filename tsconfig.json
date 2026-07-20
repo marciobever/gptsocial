@@ -36,6 +36,8 @@
     "drizzle",
     "examples",
     "worker",
+    "app/_sites-preview",
+    "app/chatgpt-auth.ts",
     "drizzle.config.ts",
     "vite.config.ts"
   ]

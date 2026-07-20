@@ -28,6 +28,10 @@ export default function Home() {
   const [existingCampaignId, setExistingCampaignId] = useState("52513336177917");
   const [firstConversionLink, setFirstConversionLink] = useState("https://www.foodsnap.com.br/lp");
   const [secondConversionLink, setSecondConversionLink] = useState("https://www.foodsnap.com.br/start");
+  const [secondVariantImage, setSecondVariantImage] = useState("https://gptsocial.vercel.app/creatives/foodsnap-body-scan-02.png");
+  const [secondVariantHeadline, setSecondVariantHeadline] = useState("Seu corpo. Seu plano.");
+  const [secondVariantText, setSecondVariantText] = useState("Seu treino e sua dieta podem começar com uma foto.\n\nO FoodSnap analisa seu corpo com IA e monta um plano prático, personalizado e fácil de seguir — direto no seu celular.\n\nVeja sua análise e comece hoje.");
+  const [secondVariantDescription, setSecondVariantDescription] = useState("Análise corporal, treino e dieta em um só app.");
   const [updatingVariants, setUpdatingVariants] = useState(false);
   const [variantResult, setVariantResult] = useState("");
 
@@ -121,6 +125,10 @@ export default function Home() {
           campaignId: existingCampaignId,
           firstLink: firstConversionLink,
           secondLink: secondConversionLink,
+          secondImageUrl: secondVariantImage,
+          secondHeadline: secondVariantHeadline,
+          secondPrimaryText: secondVariantText,
+          secondDescription: secondVariantDescription,
         }),
       });
       const data = await response.json();
@@ -217,6 +225,10 @@ export default function Home() {
                 <label>Anúncio 01 — LP<input value={firstConversionLink} onChange={(e) => setFirstConversionLink(e.target.value)} /></label>
                 <label>Anúncio 02 — Start<input value={secondConversionLink} onChange={(e) => setSecondConversionLink(e.target.value)} /></label>
               </div>
+              <label>Imagem do anúncio 02<input value={secondVariantImage} onChange={(e) => setSecondVariantImage(e.target.value)} /></label>
+              <label>Título do anúncio 02<input value={secondVariantHeadline} onChange={(e) => setSecondVariantHeadline(e.target.value)} /></label>
+              <label>Texto principal do anúncio 02<textarea className="plainTextarea" value={secondVariantText} onChange={(e) => setSecondVariantText(e.target.value)} /></label>
+              <label>Descrição do anúncio 02<input value={secondVariantDescription} onChange={(e) => setSecondVariantDescription(e.target.value)} /></label>
               {variantResult && <div className={variantResult.includes("IDs:") ? "alert success" : "alert error"}>{variantResult}</div>}
               <div className="actions variantActions"><button className="next" onClick={updateConversionLinks} disabled={updatingVariants}>{updatingVariants ? "Atualizando..." : "Aplicar dois links pausados"}<span>→</span></button></div>
             </div>

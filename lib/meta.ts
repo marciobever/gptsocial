@@ -228,6 +228,10 @@ export type ConversionLinkVariantsInput = {
   campaignId: string;
   firstLink: string;
   secondLink: string;
+  secondImageUrl?: string;
+  secondHeadline?: string;
+  secondPrimaryText?: string;
+  secondDescription?: string;
 };
 
 type LinkAdCreative = {
@@ -245,7 +249,11 @@ type LinkAdCreative = {
   };
 };
 
-function creativeWithLink(creative: LinkAdCreative, link: string) {
+function creativeWithLink(
+  creative: LinkAdCreative,
+  link: string,
+  overrides: { imageHash?: string; headline?: string; primaryText?: string; description?: string } = {},
+) {
   const storySpec = structuredClone(creative.object_story_spec);
   if (!storySpec?.page_id || !storySpec.link_data) {
     throw new Error("O anúncio atual não usa um criativo de link compatível.");
@@ -257,6 +265,10 @@ function creativeWithLink(creative: LinkAdCreative, link: string) {
     type: currentCta?.type || "LEARN_MORE",
     value: { ...(currentCta?.value || {}), link },
   };
+  if (overrides.imageHash) storySpec.link_data.image_hash = overrides.imageHash;
+  if (overrides.headline) storySpec.link_data.name = overrides.headline;
+  if (overrides.primaryText) storySpec.link_data.message = overrides.primaryText;
+  if (overrides.description) storySpec.link_data.description = overrides.description;
   return storySpec;
 }
 
@@ -294,9 +306,17 @@ export async function updateConversionLinkVariants(token: string, input: Convers
     name: `${campaign.name} — Criativo LP`,
     object_story_spec: creativeWithLink(sourceCreative, input.firstLink),
   });
+  const secondImageHash = input.secondImageUrl
+    ? await uploadImage(token, input.adAccountId, input.secondImageUrl)
+    : undefined;
   const secondCreative = await graphPost(token, `/${input.adAccountId}/adcreatives`, {
     name: `${campaign.name} — Criativo Start`,
-    object_story_spec: creativeWithLink(sourceCreative, input.secondLink),
+    object_story_spec: creativeWithLink(sourceCreative, input.secondLink, {
+      imageHash: secondImageHash,
+      headline: input.secondHeadline,
+      primaryText: input.secondPrimaryText,
+      description: input.secondDescription,
+    }),
   });
 
   await graphPost(token, `/${campaign.id}`, { status: "PAUSED" });

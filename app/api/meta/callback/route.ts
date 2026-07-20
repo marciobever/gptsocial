@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const shortUrl = new URL("https://graph.facebook.com/v25.0/oauth/access_token");
+    const shortUrl = new URL("https://graph.facebook.com/v20.0/oauth/access_token");
     shortUrl.searchParams.set("client_id", appId);
     shortUrl.searchParams.set("client_secret", appSecret);
     shortUrl.searchParams.set("redirect_uri", redirectUri);
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const shortData = await (await fetch(shortUrl)).json();
     if (shortData.error) throw new Error(shortData.error.message);
 
-    const longUrl = new URL("https://graph.facebook.com/v25.0/oauth/access_token");
+    const longUrl = new URL("https://graph.facebook.com/v20.0/oauth/access_token");
     longUrl.searchParams.set("grant_type", "fb_exchange_token");
     longUrl.searchParams.set("client_id", appId);
     longUrl.searchParams.set("client_secret", appSecret);

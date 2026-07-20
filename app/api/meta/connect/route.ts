@@ -6,7 +6,6 @@ const SCOPES = [
   "business_management",
   "pages_show_list",
   "pages_read_engagement",
-  "instagram_basic",
 ];
 
 export async function GET(request: NextRequest) {
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (!appId) return NextResponse.json({ error: "META_APP_ID não configurado." }, { status: 500 });
   const redirectUri = process.env.META_REDIRECT_URI || new URL("/api/meta/callback", request.url).toString();
   const state = crypto.randomUUID();
-  const auth = new URL("https://www.facebook.com/v25.0/dialog/oauth");
+  const auth = new URL("https://www.facebook.com/v20.0/dialog/oauth");
   auth.searchParams.set("client_id", appId);
   auth.searchParams.set("redirect_uri", redirectUri);
   auth.searchParams.set("state", state);

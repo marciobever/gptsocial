@@ -1,4 +1,4 @@
-const API_VERSION = "v25.0";
+const API_VERSION = "v20.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}`;
 
 type MetaError = {

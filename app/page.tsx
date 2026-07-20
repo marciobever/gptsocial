@@ -29,9 +29,12 @@ export default function Home() {
   const [firstConversionLink, setFirstConversionLink] = useState("https://www.foodsnap.com.br/lp");
   const [secondConversionLink, setSecondConversionLink] = useState("https://www.foodsnap.com.br/start");
   const [secondVariantImage, setSecondVariantImage] = useState("https://gptsocial.vercel.app/creatives/foodsnap-body-scan-02.png");
+  const [secondVariantVerticalImage, setSecondVariantVerticalImage] = useState("https://gptsocial.vercel.app/creatives/foodsnap-body-scan-02-9x16.png");
+  const [secondVariantLandscapeImage, setSecondVariantLandscapeImage] = useState("https://gptsocial.vercel.app/creatives/foodsnap-body-scan-02-1.91x1.png");
   const [secondVariantHeadline, setSecondVariantHeadline] = useState("Seu corpo. Seu plano.");
   const [secondVariantText, setSecondVariantText] = useState("Seu treino e sua dieta podem começar com uma foto.\n\nO FoodSnap analisa seu corpo com IA e monta um plano prático, personalizado e fácil de seguir — direto no seu celular.\n\nVeja sua análise e comece hoje.");
   const [secondVariantDescription, setSecondVariantDescription] = useState("Análise corporal, treino e dieta em um só app.");
+  const [removeExploreAndMarketplace, setRemoveExploreAndMarketplace] = useState(true);
   const [updatingVariants, setUpdatingVariants] = useState(false);
   const [variantResult, setVariantResult] = useState("");
 
@@ -126,9 +129,12 @@ export default function Home() {
           firstLink: firstConversionLink,
           secondLink: secondConversionLink,
           secondImageUrl: secondVariantImage,
+          secondVerticalImageUrl: secondVariantVerticalImage,
+          secondLandscapeImageUrl: secondVariantLandscapeImage,
           secondHeadline: secondVariantHeadline,
           secondPrimaryText: secondVariantText,
           secondDescription: secondVariantDescription,
+          removeExploreAndMarketplace,
         }),
       });
       const data = await response.json();
@@ -226,9 +232,14 @@ export default function Home() {
                 <label>Anúncio 02 — Start<input value={secondConversionLink} onChange={(e) => setSecondConversionLink(e.target.value)} /></label>
               </div>
               <label>Imagem do anúncio 02<input value={secondVariantImage} onChange={(e) => setSecondVariantImage(e.target.value)} /></label>
+              <div className="twoCols">
+                <label>Imagem 9:16 — Stories/Reels<input value={secondVariantVerticalImage} onChange={(e) => setSecondVariantVerticalImage(e.target.value)} /></label>
+                <label>Imagem 1,91:1 — Horizontal<input value={secondVariantLandscapeImage} onChange={(e) => setSecondVariantLandscapeImage(e.target.value)} /></label>
+              </div>
               <label>Título do anúncio 02<input value={secondVariantHeadline} onChange={(e) => setSecondVariantHeadline(e.target.value)} /></label>
               <label>Texto principal do anúncio 02<textarea className="plainTextarea" value={secondVariantText} onChange={(e) => setSecondVariantText(e.target.value)} /></label>
               <label>Descrição do anúncio 02<input value={secondVariantDescription} onChange={(e) => setSecondVariantDescription(e.target.value)} /></label>
+              <label className="placementChoice"><input type="checkbox" checked={removeExploreAndMarketplace} onChange={(e) => setRemoveExploreAndMarketplace(e.target.checked)} /> Remover Facebook Marketplace e Instagram Explorar dos dois anúncios</label>
               {variantResult && <div className={variantResult.includes("IDs:") ? "alert success" : "alert error"}>{variantResult}</div>}
               <div className="actions variantActions"><button className="next" onClick={updateConversionLinks} disabled={updatingVariants}>{updatingVariants ? "Atualizando..." : "Aplicar dois links pausados"}<span>→</span></button></div>
             </div>

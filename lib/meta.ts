@@ -229,9 +229,12 @@ export type ConversionLinkVariantsInput = {
   firstLink: string;
   secondLink: string;
   secondImageUrl?: string;
+  secondVerticalImageUrl?: string;
+  secondLandscapeImageUrl?: string;
   secondHeadline?: string;
   secondPrimaryText?: string;
   secondDescription?: string;
+  removeExploreAndMarketplace?: boolean;
 };
 
 type LinkAdCreative = {
@@ -280,7 +283,7 @@ export async function updateConversionLinkVariants(token: string, input: Convers
 
   const campaign = await graphGet(token, `/${input.campaignId}`, { fields: "id,name,status" });
   const adsets = await graphGet(token, `/${input.campaignId}/adsets`, {
-    fields: "id,name,status",
+    fields: "id,name,status,targeting",
     limit: 100,
   });
   const adset = (adsets.data || []).find(
@@ -309,18 +312,88 @@ export async function updateConversionLinkVariants(token: string, input: Convers
   const secondImageHash = input.secondImageUrl
     ? await uploadImage(token, input.adAccountId, input.secondImageUrl)
     : undefined;
+  const secondVerticalImageHash = input.secondVerticalImageUrl
+    ? await uploadImage(token, input.adAccountId, input.secondVerticalImageUrl)
+    : undefined;
+  const secondLandscapeImageHash = input.secondLandscapeImageUrl
+    ? await uploadImage(token, input.adAccountId, input.secondLandscapeImageUrl)
+    : undefined;
+  const sourceLinkData = sourceCreative.object_story_spec?.link_data;
+  const hasPlacementAssets = Boolean(
+    secondImageHash && secondVerticalImageHash && secondLandscapeImageHash && sourceCreative.object_story_spec?.page_id,
+  );
+  const placementStorySpec = hasPlacementAssets
+    ? {
+        page_id: sourceCreative.object_story_spec?.page_id,
+        ...(sourceCreative.object_story_spec?.instagram_actor_id
+          ? { instagram_actor_id: sourceCreative.object_story_spec.instagram_actor_id }
+          : {}),
+      }
+    : undefined;
+  const placementAssetFeed = hasPlacementAssets
+    ? {
+        ad_formats: ["SINGLE_IMAGE"],
+        images: [
+          { hash: secondImageHash, adlabels: [{ name: "foodsnap_square" }] },
+          { hash: secondVerticalImageHash, adlabels: [{ name: "foodsnap_vertical" }] },
+          { hash: secondLandscapeImageHash, adlabels: [{ name: "foodsnap_landscape" }] },
+        ],
+        bodies: [{ text: input.secondPrimaryText || String(sourceLinkData?.message || "") }],
+        titles: [{ text: input.secondHeadline || String(sourceLinkData?.name || "") }],
+        descriptions: [{ text: input.secondDescription || String(sourceLinkData?.description || "") }],
+        link_urls: [{ website_url: input.secondLink }],
+        call_to_action_types: [sourceLinkData?.call_to_action?.type || "LEARN_MORE"],
+        asset_customization_rules: [
+          {
+            customization_spec: { publisher_platforms: ["facebook"], facebook_positions: ["feed"] },
+            image_label: { name: "foodsnap_landscape" },
+            priority: 1,
+          },
+          {
+            customization_spec: { publisher_platforms: ["instagram"], instagram_positions: ["stream"] },
+            image_label: { name: "foodsnap_square" },
+            priority: 2,
+          },
+          {
+            customization_spec: { publisher_platforms: ["facebook"], facebook_positions: ["story"] },
+            image_label: { name: "foodsnap_vertical" },
+            priority: 3,
+          },
+          {
+            customization_spec: { publisher_platforms: ["instagram"], instagram_positions: ["story", "reels"] },
+            image_label: { name: "foodsnap_vertical" },
+            priority: 4,
+          },
+        ],
+      }
+    : undefined;
   const secondCreative = await graphPost(token, `/${input.adAccountId}/adcreatives`, {
     name: `${campaign.name} — Criativo Start`,
-    object_story_spec: creativeWithLink(sourceCreative, input.secondLink, {
-      imageHash: secondImageHash,
-      headline: input.secondHeadline,
-      primaryText: input.secondPrimaryText,
-      description: input.secondDescription,
-    }),
+    object_story_spec: placementStorySpec || creativeWithLink(sourceCreative, input.secondLink, {
+        imageHash: secondImageHash,
+        headline: input.secondHeadline,
+        primaryText: input.secondPrimaryText,
+        description: input.secondDescription,
+      }),
+    asset_feed_spec: placementAssetFeed,
   });
 
   await graphPost(token, `/${campaign.id}`, { status: "PAUSED" });
-  await graphPost(token, `/${adset.id}`, { status: "PAUSED" });
+  if (input.removeExploreAndMarketplace && adset.targeting) {
+    const revisedTargeting = structuredClone(adset.targeting) as Record<string, unknown> & {
+      facebook_positions?: string[];
+      instagram_positions?: string[];
+    };
+    revisedTargeting.facebook_positions = (revisedTargeting.facebook_positions || []).filter(
+      (position) => position !== "marketplace",
+    );
+    revisedTargeting.instagram_positions = (revisedTargeting.instagram_positions || []).filter(
+      (position) => position !== "explore",
+    );
+    await graphPost(token, `/${adset.id}`, { targeting: revisedTargeting, status: "PAUSED" });
+  } else {
+    await graphPost(token, `/${adset.id}`, { status: "PAUSED" });
+  }
   await graphPost(token, `/${firstAd.id}`, {
     creative: { creative_id: firstCreative.id },
     status: "PAUSED",

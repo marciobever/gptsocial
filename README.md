@@ -18,9 +18,11 @@ Crie as seguintes variáveis no ambiente do servidor:
 META_APP_ID=
 META_APP_SECRET=
 META_REDIRECT_URI=https://seu-dominio/api/meta/callback
+META_SYSTEM_TOKEN=
 ```
 
 Cadastre o mesmo endereço de `META_REDIRECT_URI` em **Valid OAuth Redirect URIs** no painel do aplicativo Meta.
+`META_SYSTEM_TOKEN` é opcional e funciona como fallback da Business Manager quando não há uma sessão OAuth válida.
 
 ## Desenvolvimento
 

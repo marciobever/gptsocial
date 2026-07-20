@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createPausedCampaign } from "@/lib/meta";
-import { decryptMetaToken } from "@/lib/meta-auth";
+import { getMetaSession } from "@/lib/meta-session";
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const encryptedToken = cookieStore.get("meta_token")?.value;
-    if (!encryptedToken) {
+    const session = await getMetaSession();
+    if (!session) {
       return NextResponse.json({ error: "Conecte sua conta Meta antes de publicar." }, { status: 401 });
     }
-    const token = await decryptMetaToken(encryptedToken);
     const body = await request.json();
     const required = ["adAccountId", "pageId", "name", "link", "headline", "primaryText", "imageUrl"];
     const missing = required.filter((field) => !body[field]);
     if (missing.length) {
       return NextResponse.json({ error: `Campos obrigatórios: ${missing.join(", ")}` }, { status: 400 });
     }
-    const result = await createPausedCampaign(token, body);
+    const result = await createPausedCampaign(session.token, body);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getMetaAssets } from "@/lib/meta";
-import { decryptMetaToken } from "@/lib/meta-auth";
+import { getMetaSession } from "@/lib/meta-session";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const encryptedToken = cookieStore.get("meta_token")?.value;
-    if (!encryptedToken) {
+    const session = await getMetaSession();
+    if (!session) {
       return NextResponse.json(
         { connected: false, needsAuth: true, error: "Meta não conectada." },
         { status: 401 },
       );
     }
-    const token = await decryptMetaToken(encryptedToken);
-    const assets = await getMetaAssets(token);
-    return NextResponse.json({ connected: true, ...assets });
+    const assets = await getMetaAssets(session.token);
+    return NextResponse.json({ connected: true, source: session.source, ...assets });
   } catch (error) {
     return NextResponse.json(
       {
